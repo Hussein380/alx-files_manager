@@ -1,33 +1,32 @@
-// Import the redis module
+// Import the redis module to create a Redis client
 import { createClient } from 'redis';
 
-// Define a class RedisClient that interacts with Redis
+// Define a class RedisClient that will manage interactions with Redis
 class RedisClient {
   constructor() {
-    // Create a Redis client
+    // Create a Redis client instance
     this.client = createClient();
 
-    // Error handling: Log any errors that occur when connecting to Redis
+    // Handle Redis connection errors
     this.client.on('error', (error) => {
       console.error('Redis client error:', error);
     });
 
-    // Connect to the Redis server
+    // Connect the client to the Redis server
     this.client.connect().catch((err) => {
       console.error('Could not connect to Redis:', err);
     });
   }
 
-  // Method to check if the Redis client is connected and alive
+  // Method to check if the Redis client is connected and ready
   isAlive() {
-    // Return true if the client is connected, false otherwise
     return this.client.isOpen;
   }
 
-  // Asynchronous method to get a value by key from Redis
+  // Asynchronous method to retrieve the value of a specific key from Redis
   async get(key) {
     try {
-      // Return the value for the given key
+      // Return the value associated with the key
       const value = await this.client.get(key);
       return value;
     } catch (error) {
@@ -36,12 +35,15 @@ class RedisClient {
     }
   }
 
-  // Asynchronous method to set a key with a value and expiration time (in seconds)
+  // Asynchronous method to store a key-value pair in Redis with an optional expiration time
   async set(key, value, duration) {
     try {
-      // Set the key with the value and set the expiration time
+      // Store the key-value pair in Redis
       await this.client.set(key, value);
-      await this.client.expire(key, duration); // Set the expiration in seconds
+      // If a duration is specified, set the expiration time in seconds
+      if (duration) {
+        await this.client.expire(key, duration);
+      }
     } catch (error) {
       console.error(`Error setting key ${key}:`, error);
     }
@@ -50,7 +52,7 @@ class RedisClient {
   // Asynchronous method to delete a key from Redis
   async del(key) {
     try {
-      // Delete the key from Redis
+      // Remove the key from Redis
       await this.client.del(key);
     } catch (error) {
       console.error(`Error deleting key ${key}:`, error);
@@ -58,6 +60,6 @@ class RedisClient {
   }
 }
 
-// Export an instance of RedisClient to be used in other files
+// Export an instance of the RedisClient class to be used throughout the project
 const redisClient = new RedisClient();
 export default redisClient;

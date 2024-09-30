@@ -1,8 +1,9 @@
-// controllers/UsersController.js
-import crypto from 'crypto'; // Import crypto for hashing
-import User from '../models/User.js'; // Import your User model
+import redisClient from '../utils/redis';  // Import Redis client
+import User from '../models/User';  // Import User model
+import crypto from 'crypto';  // For hashing passwords
 
 class UsersController {
+    // Endpoint to create a new user (postNew)
     static async postNew(req, res) {
         const { email, password } = req.body;
 
@@ -39,6 +40,34 @@ class UsersController {
             id: newUser._id,
             email: newUser.email,
         });
+    }
+
+    // New endpoint to get user information based on the token (getMe)
+    static async getMe(req, res) {
+        const token = req.headers['x-token'];
+
+        // Check if token is provided
+        if (!token) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        // Retrieve user ID from Redis using the token
+        const key = `auth_${token}`;
+        const userId = await redisClient.get(key);
+
+        // If the token is not found or expired
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        // Find the user by ID and return their email and ID
+        const user = await User.findById(userId).select('email _id');
+        if (!user) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        // Return user information
+        return res.status(200).json(user);
     }
 }
 
