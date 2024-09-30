@@ -2,33 +2,54 @@ import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 import path from 'path';
 import FileModel from '../models/FileModel'; // Adjust the import as needed
+import UserModel from '../models/UserModel'; // Ensure UserModel is imported
 import redisClient from '../utils/redis'; // Assuming you're using Redis for authentication
 
 class FilesController {
   static async postUpload(req, res) {
+    // Existing upload logic...
+  }
+
+  static async getShow(req, res) {
     // Retrieve user from the token
     const userId = await redisClient.get(req.headers['x-token']);
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const { name, type, parentId, isPublic = false, data } = req.body;
+    const { id } = req.params;
 
-    // Validation
-    if (!name) {
-      return res.status(400).json({ error: 'Missing name' });
+    // Find the file based on the ID and user ID
+    const file = await FileModel.findOne({ id, userId });
+    if (!file) {
+      return res.status(404).json({ error: 'Not found' });
     }
-    if (!type || !['folder', 'file', 'image'].includes(type)) {
-      return res.status(400).json({ error: 'Missing type' });
-    }
-    if (type !== 'folder' && !data) {
-      return res.status(400).json({ error: 'Missing data' });
-    }
-    // Additional validation for parentId here...
 
-    // Handle file/folder creation logic...
+    // Return the file document
+    return res.status(200).json(file);
+  }
 
-    return res.status(201).json(newFile); // Return the created file object
+  static async getIndex(req, res) {
+    // Retrieve user from the token
+    const userId = await redisClient.get(req.headers['x-token']);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { parentId = 0, page = 0 } = req.query;
+
+    // Set pagination parameters
+    const limit = 20; // Max items per page
+    const skip = page * limit;
+
+    // Find files based on parentId and userId with pagination
+    const files = await FileModel.find({ parentId, userId })
+      .skip(skip)
+      .limit(limit)
+      .exec();
+
+    // Return the list of file documents
+    return res.status(200).json(files);
   }
 }
 
